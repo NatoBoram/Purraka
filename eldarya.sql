@@ -1,0 +1,12 @@
+-- Items
+	-- data-wearableitemid : 2738
+	-- data-type : PlayerWearableItem
+	-- abstract-icon : /static/img/item/player/icon/c21ea4fb64bd8a37b622af879d45e70d.png
+	-- rarity-marker : epic
+	-- abstract-name : Petite ceinture à plumes
+	-- abstract-type : Ceintures
+-- Market
+	-- data-itemid : 18342710
+	-- currentPrice : 1
+	-- buyNowPrice : 1
+	-- data-bids : 0
