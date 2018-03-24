@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS `items` (
 	`data-type` varchar(32) DEFAULT NULL,
 	`abstract-icon` varchar(128) DEFAULT NULL,
 	`rarity-marker` varchar(16) DEFAULT NULL,
-	`abstract-name` varchar(32) DEFAULT NULL,
+	`abstract-name` varchar(64) DEFAULT NULL,
 	`abstract-type` varchar(32) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
