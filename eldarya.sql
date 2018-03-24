@@ -100,9 +100,9 @@ group by `data-wearableitemid`;
 create view `market-zscore` as
 select
 	`market`.`data-itemid`,
-	(`diff-currentPrice` / `sigma-currentPrice`) as `zscore-currentPrice`,
-	(`diff-buyNowPrice` / `sigma-buyNowPrice`) as `zscore-buyNowPrice`,
-	(`diff-data-bids` / `sigma-data-bids`) as `zscore-data-bids`
+	COALESCE(`diff-currentPrice` / `sigma-currentPrice`, 0) as `zscore-currentPrice`,
+	COALESCE(`diff-buyNowPrice` / `sigma-buyNowPrice`, 0) as `zscore-buyNowPrice`,
+	COALESCE(`diff-data-bids` / `sigma-data-bids`, 0) as `zscore-data-bids`
 from `market-diff`, `market-sigma`, `market`
 where `market`.`data-itemid` = `market-diff`.`data-itemid`
 	and `market`.`data-wearableitemid` = `market-sigma`.`data-wearableitemid`
