@@ -63,7 +63,6 @@ CREATE TABLE IF NOT EXISTS `market` (
 -- View structure for view `market-view`
 --
 
-drop view `market-average`;
 create view `market-average` as  
 	select
 		`data-wearableitemid`,
@@ -76,7 +75,6 @@ create view `market-average` as
 
 -- Difference between current values and averages
 
-drop view `market-diff`;
 create view `market-diff` as  
 select
 	`data-itemid`,
@@ -87,7 +85,6 @@ from `market`;
 
 -- Average of differences
 
-drop view `market-sigma`;
 create view `market-sigma` as 
 select
 	`data-wearableitemid`,
@@ -97,3 +94,16 @@ select
 from `market`, `market-diff`
 where `market`.`data-itemid` = `market-diff`.`data-itemid`
 group by `data-wearableitemid`;
+
+-- Z Score
+
+create view `market-zscore` as
+select
+	`market`.`data-itemid`,
+	(`diff-currentPrice` / `sigma-currentPrice`) as `zscore-currentPrice`,
+	(`diff-buyNowPrice` / `sigma-buyNowPrice`) as `zscore-buyNowPrice`,
+	(`diff-data-bids` / `sigma-data-bids`) as `zscore-data-bids`
+from `market-diff`, `market-sigma`, `market`
+where `market`.`data-itemid` = `market-diff`.`data-itemid`
+	and `market`.`data-wearableitemid` = `market-sigma`.`data-wearableitemid`
+;
