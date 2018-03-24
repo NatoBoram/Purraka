@@ -176,14 +176,15 @@ L:
 	}
 	defer selectItem.Close()
 
-	// Insert Item
+	// Prepare Item
 	insertItem, err := db.Prepare("insert into items(`data-wearableitemid`, `data-type`, `abstract-icon`, `rarity-marker`, `abstract-name`, `abstract-type`) values(?, ?, ?, ?, ?, ?);")
 	if err != nil {
 		println("Couldn't prepare the statement insert item.")
 		return err
 	}
-	defer selectItem.Close()
+	defer insertItem.Close()
 
+	// Insert Items
 	for _, itemval := range items {
 		var itemname string
 		err := selectItem.QueryRow(itemval.id).Scan(&itemname)
@@ -195,10 +196,15 @@ L:
 			if err != nil {
 				println("Couldn't insert", itemval.name+".")
 				println(err.Error())
-				println("abstract-type :", itemval.abstracttype)
 			}
 		}
 	}
+
+	// Query Market
+
+	// Prepare Market
+
+	// Insert Market
 
 	// End
 	end := time.Since(start)
