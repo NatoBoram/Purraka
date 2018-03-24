@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"encoding/json"
@@ -6,8 +6,8 @@ import (
 	"os"
 )
 
-// Structure that hosts Purreko's configuration.
-type configStruct struct {
+// StructConfig hosts Purraka's configuration.
+type StructConfig struct {
 	user     string
 	password string
 	address  string
@@ -16,17 +16,20 @@ type configStruct struct {
 }
 
 var (
-	configPath = "./purreko/config.json"
-	config     configStruct
+	configPath = "./Purraka/config.json"
+
+	// Configuration of Purraka.
+	Configuration StructConfig
 )
 
-func load() error {
+// Load the config file.
+func Load() error {
 	println("Loading...")
 	file, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(file, &config)
+	err = json.Unmarshal(file, &Configuration)
 	if err != nil {
 		return err
 	}
@@ -34,9 +37,10 @@ func load() error {
 	return nil
 }
 
-func save() error {
+// Save the current configuration
+func Save() error {
 	println("Saving...")
-	json, err := json.Marshal(config)
+	json, err := json.Marshal(Configuration)
 	if err != nil {
 		return err
 	}
@@ -48,14 +52,15 @@ func save() error {
 	return nil
 }
 
-func reset() {
+// Reset the defaults and save.
+func Reset() {
 	println("Reset...")
-	var defaults configStruct
+	var defaults StructConfig
 	defaults.user = "root"
 	defaults.password = ""
 	defaults.address = "localhost"
 	defaults.port = "3306"
 	defaults.database = "eldarya"
-	config = defaults
-	save()
+	Configuration = defaults
+	Save()
 }
