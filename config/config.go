@@ -8,11 +8,11 @@ import (
 
 // StructConfig hosts Purraka's configuration.
 type StructConfig struct {
-	user     string
-	password string
-	address  string
-	port     string
-	database string
+	User     string
+	Password string
+	Address  string
+	Port     string
+	Database string
 }
 
 var (
@@ -56,11 +56,11 @@ func Save() error {
 func Reset() {
 	println("Reset...")
 	var defaults StructConfig
-	defaults.user = "root"
-	defaults.password = ""
-	defaults.address = "localhost"
-	defaults.port = "3306"
-	defaults.database = "eldarya"
+	defaults.User = "root"
+	defaults.Password = ""
+	defaults.Address = "localhost"
+	defaults.Port = "3306"
+	defaults.Database = "eldarya"
 	Configuration = defaults
 	Save()
 }
