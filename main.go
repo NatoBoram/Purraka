@@ -38,8 +38,8 @@ func main() {
 	// Open Discord Bot
 
 	// Start the spider
-	spider.Spider()
-	go spider.StartSpider()
+	spider.Spider(db)
+	go spider.StartSpider(db)
 
 	// Wait for infinity
 	<-make(chan struct{})

@@ -1,6 +1,7 @@
 package spider
 
 import (
+	"database/sql"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,22 +14,23 @@ import (
 var url = "http://www.eldarya.fr/marketplace/ajax_search?from=0&to=10000"
 
 // StartSpider starts the spider. Call this function in a goroutine.
-func StartSpider() {
+func StartSpider(db *sql.DB) {
 	for {
 		nextTime := time.Now().Truncate(time.Minute)
 		nextTime = nextTime.Add(time.Minute)
 		time.Sleep(time.Until(nextTime))
 
 		// Launch the spider
-		err := Spider()
+		err := Spider(db)
 		if err != nil {
 			println(err.Error())
 		}
+		return
 	}
 }
 
 // Spider scans Eldarya's market.
-func Spider() error {
+func Spider(db *sql.DB) error {
 
 	// Start
 	start := time.Now()
@@ -64,20 +66,17 @@ func Spider() error {
 	sales := []sale{}
 	var s sale
 
+L:
 	for {
 		tt := z.Next()
 		switch tt {
 		case html.ErrorToken:
-			break
+			break L
 		case html.StartTagToken:
 			t := z.Token()
 
 			switch t.Data {
 			case "li": // New item
-
-				// Delete old values
-				i = item{}
-				s = sale{}
 
 				// Item
 				wearableitemid := tag(t, "data-wearableitemid")
@@ -145,18 +144,58 @@ func Spider() error {
 			t := z.Token()
 			if i.name == "abstract-name" {
 				i.name = strings.TrimSpace(t.Data)
-				println("abstract-name :", i.name)
 			}
 			if i.abstracttype == "abstract-type" {
 				i.abstracttype = strings.TrimSpace(t.Data)
-				println("abstract-type :", i.abstracttype)
 			}
 			break
 		case html.EndTagToken:
 			t := z.Token()
 			if t.Data == "li" {
+				// Save in the list
 				items = append(items, i)
 				sales = append(sales, s)
+
+				// Delete old values
+				i = item{}
+				s = sale{}
+			}
+		}
+	}
+
+	// Log
+	println("There is", strconv.Itoa(len(items)), "items on the market.")
+
+	// Query
+
+	// Select Item
+	selectItem, err := db.Prepare("select `abstract-name` from items where `data-wearableitemid` = ?;")
+	if err != nil {
+		println("Couldn't prepare the statement select item.")
+		return err
+	}
+	defer selectItem.Close()
+
+	// Insert Item
+	insertItem, err := db.Prepare("insert into items(`data-wearableitemid`, `data-type`, `abstract-icon`, `rarity-marker`, `abstract-name`, `abstract-type`) values(?, ?, ?, ?, ?, ?);")
+	if err != nil {
+		println("Couldn't prepare the statement insert item.")
+		return err
+	}
+	defer selectItem.Close()
+
+	for _, itemval := range items {
+		var itemname string
+		err := selectItem.QueryRow(itemval.id).Scan(&itemname)
+		if err != nil {
+
+			// New item
+			println("New item :", itemval.name)
+			_, err := insertItem.Exec(itemval.id, itemval.datatype, itemval.icon, itemval.rarity, itemval.name, itemval.abstracttype)
+			if err != nil {
+				println("Couldn't insert", itemval.name+".")
+				println(err.Error())
+				println("abstract-type :", itemval.abstracttype)
 			}
 		}
 	}
@@ -183,7 +222,6 @@ type sale struct {
 	currentPrice string
 	buyNowPrice  string
 	bids         string
-	active       string
 }
 
 func tag(token html.Token, key string) string {
