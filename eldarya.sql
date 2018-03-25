@@ -107,3 +107,30 @@ from `market-diff`, `market-sigma`, `market`
 where `market`.`data-itemid` = `market-diff`.`data-itemid`
 	and `market`.`data-wearableitemid` = `market-sigma`.`data-wearableitemid`
 ;
+
+-- To the market!
+
+create view `market-everything` as
+select
+	-- ID
+	`items`.`data-wearableitemid`, `market`.`data-itemid`,
+	-- Abstract
+	`data-type`,
+	`rarity-marker`,
+	`abstract-name`,
+	`abstract-type`,
+	-- Prices
+	`currentPrice`, `zscore-currentPrice`,
+	`buyNowPrice`, `zscore-buyNowPrice`,
+	`data-bids`, `zscore-data-bids`,
+	`active`,
+	-- Nonsense
+	`abstract-icon`
+from `items`, `market`, `market-zscore`
+where `items`.`data-wearableitemid` = `market`.`data-wearableitemid`
+	and `market`.`data-itemid` = `market-zscore`.`data-itemid`
+	and `active` = 1
+	and `currentPrice` > 0
+	and `buyNowPrice` > 0
+order by `zscore-buyNowPrice`, `zscore-currentPrice`
+;
