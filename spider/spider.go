@@ -86,7 +86,7 @@ L:
 
 				// Objects
 				i = item{id: wearableitemid, datatype: datatype}
-				s = sale{id: itemid, itemid: wearableitemid, currentPrice: "0"}
+				s = sale{id: itemid, itemid: wearableitemid, currentPrice: "0", buyNowPrice: "0"}
 				break
 			case "img": // abstract-icon
 				i.icon = tag(t, "src")
@@ -129,11 +129,11 @@ L:
 					// This is a price.
 					if tag(t, "data-bids") != "" {
 						// This is a Buy Now Price
-						s.buyNowPrice = tag(t, "data-price")
+						s.currentPrice = tag(t, "data-price")
 						s.bids = tag(t, "data-bids")
 					} else {
 						// This is a Current Price
-						s.currentPrice = tag(t, "data-price")
+						s.buyNowPrice = tag(t, "data-price")
 					}
 				}
 				break
