@@ -25,7 +25,6 @@ func StartSpider(db *sql.DB) {
 		if err != nil {
 			println(err.Error())
 		}
-		return
 	}
 }
 
@@ -183,6 +182,9 @@ L:
 	}
 	defer insertItem.Close()
 
+	// Log
+	println("Going trough items...")
+
 	// Insert Items
 	for _, itemval := range items {
 		var itemname string
@@ -209,14 +211,34 @@ L:
 	}
 	defer selectSale.Close()
 
-	// Prepare Market
+	// Prepare Insert
 	insertSale, err := db.Prepare("insert into market(`data-itemid`, `data-wearableitemid`, `currentPrice`, `buyNowPrice`, `data-bids`) values(?, ?, ?, ?, ?);")
 	if err != nil {
 		println("Couldn't prepare the statement insert sale.")
-		println(err.Error())
 		return err
 	}
 	defer insertSale.Close()
+
+	// Prepare Update
+	updateSale, err := db.Prepare("update `market` set `currentPrice` = ?, `data-bids` = ?, `active` = 1 where `data-itemid` = ?;")
+	if err != nil {
+		println("Couldn't prepare the statement update sale.")
+		return err
+	}
+	defer updateSale.Close()
+
+	// Log
+	println("Disabling every sales...")
+
+	// Disable everything
+	_, err = db.Exec("update `market` set `active` = 0;")
+	if err != nil {
+		println("Couldn't disable every sales.")
+		println(err.Error())
+	}
+
+	// Log
+	println("Going trough sales...")
 
 	// Insert Market
 	for _, saleval := range sales {
@@ -229,11 +251,19 @@ L:
 			_, err := insertSale.Exec(saleval.id, saleval.itemid, saleval.currentPrice, saleval.buyNowPrice, saleval.bids)
 			if err != nil {
 				println("Couldn't insert", saleval.id+".")
-				println("currentPrice :", saleval.currentPrice+".")
+				println(err.Error())
+			}
+		} else {
+
+			// Old sale
+			_, err := updateSale.Exec(saleval.currentPrice, saleval.bids, saleval.id)
+			if err != nil {
+				println("Couldn't update", saleval.id+".")
 				println(err.Error())
 			}
 		}
 	}
+	updateSale.Close()
 	insertSale.Close()
 	selectSale.Close()
 
@@ -241,7 +271,7 @@ L:
 	end := time.Since(start)
 	println("End :", end.String())
 
-	return nil
+	return err
 }
 
 type item struct {
