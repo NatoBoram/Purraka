@@ -87,7 +87,7 @@ L:
 
 				// Objects
 				i = item{id: wearableitemid, datatype: datatype}
-				s = sale{id: itemid}
+				s = sale{id: itemid, itemid: wearableitemid, currentPrice: "0"}
 				break
 			case "img": // abstract-icon
 				i.icon = tag(t, "src")
@@ -160,15 +160,14 @@ L:
 				i = item{}
 				s = sale{}
 			}
+			break
 		}
 	}
 
 	// Log
 	println("There is", strconv.Itoa(len(items)), "items on the market.")
 
-	// Query
-
-	// Select Item
+	// Query Item
 	selectItem, err := db.Prepare("select `abstract-name` from items where `data-wearableitemid` = ?;")
 	if err != nil {
 		println("Couldn't prepare the statement select item.")
@@ -199,12 +198,44 @@ L:
 			}
 		}
 	}
+	insertItem.Close()
+	selectItem.Close()
 
 	// Query Market
+	selectSale, err := db.Prepare("select `data-itemid` from market where `data-itemid` = ?;")
+	if err != nil {
+		println("Couldn't prepare the statement select sale.")
+		return err
+	}
+	defer selectSale.Close()
 
 	// Prepare Market
+	insertSale, err := db.Prepare("insert into market(`data-itemid`, `data-wearableitemid`, `currentPrice`, `buyNowPrice`, `data-bids`) values(?, ?, ?, ?, ?);")
+	if err != nil {
+		println("Couldn't prepare the statement insert sale.")
+		println(err.Error())
+		return err
+	}
+	defer insertSale.Close()
 
 	// Insert Market
+	for _, saleval := range sales {
+		var saleid string
+		err := selectSale.QueryRow(saleval.id).Scan(&saleid)
+		if err != nil {
+
+			// New sale
+			println("New sale :", saleval.id)
+			_, err := insertSale.Exec(saleval.id, saleval.itemid, saleval.currentPrice, saleval.buyNowPrice, saleval.bids)
+			if err != nil {
+				println("Couldn't insert", saleval.id+".")
+				println("currentPrice :", saleval.currentPrice+".")
+				println(err.Error())
+			}
+		}
+	}
+	insertSale.Close()
+	selectSale.Close()
 
 	// End
 	end := time.Since(start)
@@ -233,7 +264,7 @@ type sale struct {
 func tag(token html.Token, key string) string {
 	for _, attr := range token.Attr {
 		if attr.Key == key {
-			return attr.Val
+			return strings.TrimSpace(attr.Val)
 		}
 	}
 	return ""
