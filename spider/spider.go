@@ -166,8 +166,14 @@ L:
 	// Log
 	println("There is", strconv.Itoa(len(items)), "items on the market.")
 
+	// Begin
+	tx, err := db.Begin()
+	if err != nil {
+		println("Couldn't begin a transaction.")
+	}
+
 	// Query Item
-	selectItem, err := db.Prepare("select `abstract-name` from items where `data-wearableitemid` = ?;")
+	selectItem, err := tx.Prepare("select `abstract-name` from items where `data-wearableitemid` = ?;")
 	if err != nil {
 		println("Couldn't prepare the statement select item.")
 		return err
@@ -175,7 +181,7 @@ L:
 	defer selectItem.Close()
 
 	// Prepare Item
-	insertItem, err := db.Prepare("insert into items(`data-wearableitemid`, `data-type`, `abstract-icon`, `rarity-marker`, `abstract-name`, `abstract-type`) values(?, ?, ?, ?, ?, ?);")
+	insertItem, err := tx.Prepare("insert into items(`data-wearableitemid`, `data-type`, `abstract-icon`, `rarity-marker`, `abstract-name`, `abstract-type`) values(?, ?, ?, ?, ?, ?);")
 	if err != nil {
 		println("Couldn't prepare the statement insert item.")
 		return err
@@ -204,7 +210,7 @@ L:
 	selectItem.Close()
 
 	// Query Market
-	selectSale, err := db.Prepare("select `data-itemid` from market where `data-itemid` = ?;")
+	selectSale, err := tx.Prepare("select `data-itemid` from market where `data-itemid` = ?;")
 	if err != nil {
 		println("Couldn't prepare the statement select sale.")
 		return err
@@ -212,7 +218,7 @@ L:
 	defer selectSale.Close()
 
 	// Prepare Insert
-	insertSale, err := db.Prepare("insert into market(`data-itemid`, `data-wearableitemid`, `currentPrice`, `buyNowPrice`, `data-bids`) values(?, ?, ?, ?, ?);")
+	insertSale, err := tx.Prepare("insert into market(`data-itemid`, `data-wearableitemid`, `currentPrice`, `buyNowPrice`, `data-bids`) values(?, ?, ?, ?, ?);")
 	if err != nil {
 		println("Couldn't prepare the statement insert sale.")
 		return err
@@ -220,7 +226,7 @@ L:
 	defer insertSale.Close()
 
 	// Prepare Update
-	updateSale, err := db.Prepare("update `market` set `currentPrice` = ?, `data-bids` = ?, `active` = 1 where `data-itemid` = ?;")
+	updateSale, err := tx.Prepare("update `market` set `currentPrice` = ?, `data-bids` = ?, `active` = 1 where `data-itemid` = ?;")
 	if err != nil {
 		println("Couldn't prepare the statement update sale.")
 		return err
@@ -231,7 +237,7 @@ L:
 	println("Disabling every sales...")
 
 	// Disable everything
-	_, err = db.Exec("update `market` set `active` = 0;")
+	_, err = tx.Exec("update `market` set `active` = 0;")
 	if err != nil {
 		println("Couldn't disable every sales.")
 		println(err.Error())
@@ -266,6 +272,13 @@ L:
 	updateSale.Close()
 	insertSale.Close()
 	selectSale.Close()
+
+	// Commit
+	err = tx.Commit()
+	if err != nil {
+		println("Couldn't commit the transaction.")
+		println(err.Error())
+	}
 
 	// End
 	end := time.Since(start)
