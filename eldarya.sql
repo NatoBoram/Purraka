@@ -123,7 +123,6 @@ select
 	`currentPrice`, `zscore-currentPrice`,
 	`buyNowPrice`, `zscore-buyNowPrice`,
 	`data-bids`, `zscore-data-bids`,
-	`active`,
 	-- Nonsense
 	`abstract-icon`
 from `items`, `market`, `market-zscore`
