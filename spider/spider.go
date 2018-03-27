@@ -89,7 +89,9 @@ L:
 				s = sale{id: itemid, itemid: wearableitemid, currentPrice: "0", buyNowPrice: "0"}
 				break
 			case "img": // abstract-icon
-				i.icon = tag(t, "src")
+				if tag(t, "class") == "abstract-icon" {
+					i.icon = tag(t, "src")
+				}
 				break
 			case "div":
 
