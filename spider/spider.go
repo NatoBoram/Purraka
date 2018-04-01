@@ -96,9 +96,10 @@ func Spider(db *sql.DB) error {
 	client := &http.Client{}
 
 	ok := true
-	for page := 0; ok; page += 7 {
+	step := 100
+	for page := 0; ok; page += step {
 
-		var url = "http://www.eldarya.fr/marketplace/ajax_search?from=" + strconv.Itoa(page) + "&to=" + strconv.Itoa(page+6)
+		var url = "http://www.eldarya.fr/marketplace/ajax_search?from=" + strconv.Itoa(page) + "&to=" + strconv.Itoa(page+step-1)
 
 		// Request
 		req, err := http.NewRequest("GET", url, nil)
