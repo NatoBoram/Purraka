@@ -38,255 +38,265 @@ func Spider(db *sql.DB) error {
 	// Client
 	client := &http.Client{}
 
-	// Request
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		println("Couldn't create a request!")
-		return err
-	}
+	ok := true
+	for page := 0; ok; page += 7 {
 
-	// Header
-	req.Header.Add("Cookie", config.HeaderConfig.Cookie)
+		var url = "http://www.eldarya.fr/marketplace/ajax_search?from=" + strconv.Itoa(page) + "&to=" + strconv.Itoa(page+6)
 
-	// Response
-	resp, err := client.Do(req)
-	if err != nil {
-		println("Couldn't receive a response!")
-		return err
-	}
-	defer resp.Body.Close()
+		// Request
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			println("Couldn't create a request!")
+			return err
+		}
 
-	// Tokenizer
-	z := html.NewTokenizer(resp.Body)
+		// Header
+		req.Header.Add("Cookie", config.HeaderConfig.Cookie)
 
-	items := []item{}
-	var i item
+		// Response
+		resp, err := client.Do(req)
+		if err != nil {
+			println("Couldn't receive a response!")
+			return err
+		}
+		defer resp.Body.Close()
 
-	sales := []sale{}
-	var s sale
+		// Tokenizer
+		z := html.NewTokenizer(resp.Body)
 
-L:
-	for {
-		tt := z.Next()
-		switch tt {
-		case html.ErrorToken:
-			break L
-		case html.StartTagToken:
-			t := z.Token()
+		items := []item{}
+		var i item
 
-			switch t.Data {
-			case "li": // New item
+		sales := []sale{}
+		var s sale
 
-				// Item
-				wearableitemid := tag(t, "data-wearableitemid")
-				datatype := tag(t, "data-type")
+	L:
+		for {
+			tt := z.Next()
+			switch tt {
+			case html.ErrorToken:
+				break L
+			case html.StartTagToken:
+				t := z.Token()
 
-				// Sale
-				itemid := tag(t, "data-itemid")
+				switch t.Data {
+				case "li": // New item
 
-				// Objects
-				i = item{id: wearableitemid, datatype: datatype}
-				s = sale{id: itemid, itemid: wearableitemid, currentPrice: "0", buyNowPrice: "0"}
-				break
-			case "img": // abstract-icon
-				if tag(t, "class") == "abstract-icon" {
-					i.icon = tag(t, "src")
-				}
-				break
-			case "div":
+					// Item
+					wearableitemid := tag(t, "data-wearableitemid")
+					datatype := tag(t, "data-type")
 
-				switch tag(t, "class") {
+					// Sale
+					itemid := tag(t, "data-itemid")
 
-				// Rarity Marker
-				case "rarity-marker-common":
-					i.rarity = "common"
+					// Objects
+					i = item{id: wearableitemid, datatype: datatype}
+					s = sale{id: itemid, itemid: wearableitemid, currentPrice: "0", buyNowPrice: "0"}
 					break
-				case "rarity-marker-rare":
-					i.rarity = "rare"
-					break
-				case "rarity-marker-epic":
-					i.rarity = "epic"
-					break
-				case "rarity-marker-legendary":
-					i.rarity = "legendary"
-					break
-				case "rarity-marker-event":
-					i.rarity = "event"
-					break
-
-					// Name
-				case "abstract-name":
-					i.name = "abstract-name"
-					break
-
-					// Type
-				case "abstract-type":
-					i.abstracttype = "abstract-type"
-					break
-				}
-
-			case "span":
-
-				if tag(t, "data-price") != "" {
-					// This is a price.
-					if tag(t, "data-bids") != "" {
-						// This is a Buy Now Price
-						s.currentPrice = tag(t, "data-price")
-						s.bids = tag(t, "data-bids")
-					} else {
-						// This is a Current Price
-						s.buyNowPrice = tag(t, "data-price")
+				case "img": // abstract-icon
+					if tag(t, "class") == "abstract-icon" {
+						i.icon = tag(t, "src")
 					}
+					break
+				case "div":
+
+					switch tag(t, "class") {
+
+					// Rarity Marker
+					case "rarity-marker-common":
+						i.rarity = "common"
+						break
+					case "rarity-marker-rare":
+						i.rarity = "rare"
+						break
+					case "rarity-marker-epic":
+						i.rarity = "epic"
+						break
+					case "rarity-marker-legendary":
+						i.rarity = "legendary"
+						break
+					case "rarity-marker-event":
+						i.rarity = "event"
+						break
+
+						// Name
+					case "abstract-name":
+						i.name = "abstract-name"
+						break
+
+						// Type
+					case "abstract-type":
+						i.abstracttype = "abstract-type"
+						break
+					}
+
+				case "span":
+
+					if tag(t, "data-price") != "" {
+						// This is a price.
+						if tag(t, "data-bids") != "" {
+							// This is a Buy Now Price
+							s.currentPrice = tag(t, "data-price")
+							s.bids = tag(t, "data-bids")
+						} else {
+							// This is a Current Price
+							s.buyNowPrice = tag(t, "data-price")
+						}
+					}
+					break
+				}
+				break
+			case html.TextToken:
+				t := z.Token()
+				if i.name == "abstract-name" {
+					i.name = strings.TrimSpace(t.Data)
+				}
+				if i.abstracttype == "abstract-type" {
+					i.abstracttype = strings.TrimSpace(t.Data)
+				}
+				break
+			case html.EndTagToken:
+				t := z.Token()
+				if t.Data == "li" {
+					// Save in the list
+					items = append(items, i)
+					sales = append(sales, s)
+
+					// Delete old values
+					i = item{}
+					s = sale{}
 				}
 				break
 			}
-			break
-		case html.TextToken:
-			t := z.Token()
-			if i.name == "abstract-name" {
-				i.name = strings.TrimSpace(t.Data)
-			}
-			if i.abstracttype == "abstract-type" {
-				i.abstracttype = strings.TrimSpace(t.Data)
-			}
-			break
-		case html.EndTagToken:
-			t := z.Token()
-			if t.Data == "li" {
-				// Save in the list
-				items = append(items, i)
-				sales = append(sales, s)
-
-				// Delete old values
-				i = item{}
-				s = sale{}
-			}
-			break
 		}
-	}
 
-	// Log
-	println("There is", strconv.Itoa(len(items)), "items on the market.")
+		// Log
+		println("There is", strconv.Itoa(len(items)), "items on this page.")
+		if len(items) == 0 {
+			ok = false
+		}
 
-	// Begin
-	tx, err := db.Begin()
-	if err != nil {
-		println("Couldn't begin a transaction.")
-	}
-
-	// Query Item
-	selectItem, err := tx.Prepare("select `abstract-name` from items where `data-wearableitemid` = ?;")
-	if err != nil {
-		println("Couldn't prepare the statement select item.")
-		return err
-	}
-	defer selectItem.Close()
-
-	// Prepare Item
-	insertItem, err := tx.Prepare("insert into items(`data-wearableitemid`, `data-type`, `abstract-icon`, `rarity-marker`, `abstract-name`, `abstract-type`) values(?, ?, ?, ?, ?, ?);")
-	if err != nil {
-		println("Couldn't prepare the statement insert item.")
-		return err
-	}
-	defer insertItem.Close()
-
-	// Log
-	println("Going trough items...")
-
-	// Insert Items
-	for _, itemval := range items {
-		var itemname string
-		err := selectItem.QueryRow(itemval.id).Scan(&itemname)
+		// Begin
+		tx, err := db.Begin()
 		if err != nil {
-
-			// New item
-			println("New item :", itemval.name)
-			_, err := insertItem.Exec(itemval.id, itemval.datatype, itemval.icon, itemval.rarity, itemval.name, itemval.abstracttype)
-			if err != nil {
-				println("Couldn't insert", itemval.name+".")
-				println(err.Error())
-			}
+			println("Couldn't begin a transaction.")
 		}
-	}
-	insertItem.Close()
-	selectItem.Close()
 
-	// Query Market
-	selectSale, err := tx.Prepare("select `data-itemid` from market where `data-itemid` = ?;")
-	if err != nil {
-		println("Couldn't prepare the statement select sale.")
-		return err
-	}
-	defer selectSale.Close()
-
-	// Prepare Insert
-	insertSale, err := tx.Prepare("insert into market(`data-itemid`, `data-wearableitemid`, `currentPrice`, `buyNowPrice`, `data-bids`) values(?, ?, ?, ?, ?);")
-	if err != nil {
-		println("Couldn't prepare the statement insert sale.")
-		return err
-	}
-	defer insertSale.Close()
-
-	// Prepare Update
-	updateSale, err := tx.Prepare("update `market` set `currentPrice` = ?, `data-bids` = ?, `active` = 1 where `data-itemid` = ?;")
-	if err != nil {
-		println("Couldn't prepare the statement update sale.")
-		return err
-	}
-	defer updateSale.Close()
-
-	// Log
-	println("Disabling every sales...")
-
-	// Disable everything
-	_, err = tx.Exec("update `market` set `active` = 0;")
-	if err != nil {
-		println("Couldn't disable every sales.")
-		println(err.Error())
-	}
-
-	// Log
-	println("Going trough sales...")
-
-	// Insert Market
-	for _, saleval := range sales {
-		var saleid string
-		err := selectSale.QueryRow(saleval.id).Scan(&saleid)
+		// Query Item
+		selectItem, err := tx.Prepare("select `abstract-name` from items where `data-wearableitemid` = ?;")
 		if err != nil {
+			println("Couldn't prepare the statement select item.")
+			return err
+		}
+		defer selectItem.Close()
 
-			// New sale
-			println("New sale :", saleval.id)
-			_, err := insertSale.Exec(saleval.id, saleval.itemid, saleval.currentPrice, saleval.buyNowPrice, saleval.bids)
-			if err != nil {
-				println("Couldn't insert", saleval.id+".")
-				println(err.Error())
-			}
-		} else {
+		// Prepare Item
+		insertItem, err := tx.Prepare("insert into items(`data-wearableitemid`, `data-type`, `abstract-icon`, `rarity-marker`, `abstract-name`, `abstract-type`) values(?, ?, ?, ?, ?, ?);")
+		if err != nil {
+			println("Couldn't prepare the statement insert item.")
+			return err
+		}
+		defer insertItem.Close()
 
-			// Old sale
-			_, err := updateSale.Exec(saleval.currentPrice, saleval.bids, saleval.id)
+		// Log
+		println("Going trough items...")
+
+		// Insert Items
+		for _, itemval := range items {
+			var itemname string
+			err := selectItem.QueryRow(itemval.id).Scan(&itemname)
 			if err != nil {
-				println("Couldn't update", saleval.id+".")
-				println(err.Error())
+
+				// New item
+				println("New item :", itemval.name)
+				_, err := insertItem.Exec(itemval.id, itemval.datatype, itemval.icon, itemval.rarity, itemval.name, itemval.abstracttype)
+				if err != nil {
+					println("Couldn't insert", itemval.name+".")
+					println(err.Error())
+				}
 			}
 		}
-	}
-	updateSale.Close()
-	insertSale.Close()
-	selectSale.Close()
+		insertItem.Close()
+		selectItem.Close()
 
-	// Commit
-	err = tx.Commit()
-	if err != nil {
-		println("Couldn't commit the transaction.")
-		println(err.Error())
+		// Query Market
+		selectSale, err := tx.Prepare("select `data-itemid` from market where `data-itemid` = ?;")
+		if err != nil {
+			println("Couldn't prepare the statement select sale.")
+			return err
+		}
+		defer selectSale.Close()
+
+		// Prepare Insert
+		insertSale, err := tx.Prepare("insert into market(`data-itemid`, `data-wearableitemid`, `currentPrice`, `buyNowPrice`, `data-bids`) values(?, ?, ?, ?, ?);")
+		if err != nil {
+			println("Couldn't prepare the statement insert sale.")
+			return err
+		}
+		defer insertSale.Close()
+
+		// Prepare Update
+		updateSale, err := tx.Prepare("update `market` set `currentPrice` = ?, `data-bids` = ?, `active` = 1 where `data-itemid` = ?;")
+		if err != nil {
+			println("Couldn't prepare the statement update sale.")
+			return err
+		}
+		defer updateSale.Close()
+
+		// Log
+		println("Disabling every sales...")
+
+		// Disable everything
+		_, err = tx.Exec("update `market` set `active` = 0;")
+		if err != nil {
+			println("Couldn't disable every sales.")
+			println(err.Error())
+		}
+
+		// Log
+		println("Going trough sales...")
+
+		// Insert Market
+		for _, saleval := range sales {
+			var saleid string
+			err := selectSale.QueryRow(saleval.id).Scan(&saleid)
+			if err != nil {
+
+				// New sale
+				println("New sale :", saleval.id)
+				_, err := insertSale.Exec(saleval.id, saleval.itemid, saleval.currentPrice, saleval.buyNowPrice, saleval.bids)
+				if err != nil {
+					println("Couldn't insert", saleval.id+".")
+					println(err.Error())
+				}
+			} else {
+
+				// Old sale
+				_, err := updateSale.Exec(saleval.currentPrice, saleval.bids, saleval.id)
+				if err != nil {
+					println("Couldn't update", saleval.id+".")
+					println(err.Error())
+				}
+			}
+		}
+		updateSale.Close()
+		insertSale.Close()
+		selectSale.Close()
+
+		// Commit
+		err = tx.Commit()
+		if err != nil {
+			println("Couldn't commit the transaction.")
+			println(err.Error())
+		}
+
 	}
 
 	// End
 	end := time.Since(start)
 	println("End :", end.String())
 
-	return err
+	return nil
 }
 
 type item struct {
