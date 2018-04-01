@@ -35,6 +35,63 @@ func Spider(db *sql.DB) error {
 	start := time.Now()
 	println("Start :", strconv.Itoa(start.Hour())+":"+strconv.Itoa(start.Minute()))
 
+	// Begin
+	tx, err := db.Begin()
+	if err != nil {
+		println("Couldn't begin a transaction.")
+		return err
+	}
+
+	// Query Item
+	selectItem, err := tx.Prepare("select `abstract-name` from items where `data-wearableitemid` = ?;")
+	if err != nil {
+		println("Couldn't prepare the statement select item.")
+		return err
+	}
+	defer selectItem.Close()
+
+	// Prepare Item
+	insertItem, err := tx.Prepare("insert into items(`data-wearableitemid`, `data-type`, `abstract-icon`, `rarity-marker`, `abstract-name`, `abstract-type`) values(?, ?, ?, ?, ?, ?);")
+	if err != nil {
+		println("Couldn't prepare the statement insert item.")
+		return err
+	}
+	defer insertItem.Close()
+
+	// Query Market
+	selectSale, err := tx.Prepare("select `data-itemid` from market where `data-itemid` = ?;")
+	if err != nil {
+		println("Couldn't prepare the statement select sale.")
+		return err
+	}
+	defer selectSale.Close()
+
+	// Prepare Insert
+	insertSale, err := tx.Prepare("insert into market(`data-itemid`, `data-wearableitemid`, `currentPrice`, `buyNowPrice`, `data-bids`) values(?, ?, ?, ?, ?);")
+	if err != nil {
+		println("Couldn't prepare the statement insert sale.")
+		return err
+	}
+	defer insertSale.Close()
+
+	// Prepare Update
+	updateSale, err := tx.Prepare("update `market` set `currentPrice` = ?, `data-bids` = ?, `active` = 1 where `data-itemid` = ?;")
+	if err != nil {
+		println("Couldn't prepare the statement update sale.")
+		return err
+	}
+	defer updateSale.Close()
+
+	// Log
+	println("Disabling every sales...")
+
+	// Disable everything
+	_, err = tx.Exec("update `market` set `active` = 0;")
+	if err != nil {
+		println("Couldn't disable every sales.")
+		println(err.Error())
+	}
+
 	// Client
 	client := &http.Client{}
 
@@ -176,30 +233,8 @@ func Spider(db *sql.DB) error {
 			ok = false
 		}
 
-		// Begin
-		tx, err := db.Begin()
-		if err != nil {
-			println("Couldn't begin a transaction.")
-		}
-
-		// Query Item
-		selectItem, err := tx.Prepare("select `abstract-name` from items where `data-wearableitemid` = ?;")
-		if err != nil {
-			println("Couldn't prepare the statement select item.")
-			return err
-		}
-		defer selectItem.Close()
-
-		// Prepare Item
-		insertItem, err := tx.Prepare("insert into items(`data-wearableitemid`, `data-type`, `abstract-icon`, `rarity-marker`, `abstract-name`, `abstract-type`) values(?, ?, ?, ?, ?, ?);")
-		if err != nil {
-			println("Couldn't prepare the statement insert item.")
-			return err
-		}
-		defer insertItem.Close()
-
 		// Log
-		println("Going trough items...")
+		//println("Going trough items...")
 
 		// Insert Items
 		for _, itemval := range items {
@@ -216,45 +251,9 @@ func Spider(db *sql.DB) error {
 				}
 			}
 		}
-		insertItem.Close()
-		selectItem.Close()
-
-		// Query Market
-		selectSale, err := tx.Prepare("select `data-itemid` from market where `data-itemid` = ?;")
-		if err != nil {
-			println("Couldn't prepare the statement select sale.")
-			return err
-		}
-		defer selectSale.Close()
-
-		// Prepare Insert
-		insertSale, err := tx.Prepare("insert into market(`data-itemid`, `data-wearableitemid`, `currentPrice`, `buyNowPrice`, `data-bids`) values(?, ?, ?, ?, ?);")
-		if err != nil {
-			println("Couldn't prepare the statement insert sale.")
-			return err
-		}
-		defer insertSale.Close()
-
-		// Prepare Update
-		updateSale, err := tx.Prepare("update `market` set `currentPrice` = ?, `data-bids` = ?, `active` = 1 where `data-itemid` = ?;")
-		if err != nil {
-			println("Couldn't prepare the statement update sale.")
-			return err
-		}
-		defer updateSale.Close()
 
 		// Log
-		println("Disabling every sales...")
-
-		// Disable everything
-		_, err = tx.Exec("update `market` set `active` = 0;")
-		if err != nil {
-			println("Couldn't disable every sales.")
-			println(err.Error())
-		}
-
-		// Log
-		println("Going trough sales...")
+		//println("Going trough sales...")
 
 		// Insert Market
 		for _, saleval := range sales {
@@ -279,17 +278,13 @@ func Spider(db *sql.DB) error {
 				}
 			}
 		}
-		updateSale.Close()
-		insertSale.Close()
-		selectSale.Close()
+	}
 
-		// Commit
-		err = tx.Commit()
-		if err != nil {
-			println("Couldn't commit the transaction.")
-			println(err.Error())
-		}
-
+	// Commit
+	err = tx.Commit()
+	if err != nil {
+		println("Couldn't commit the transaction.")
+		println(err.Error())
 	}
 
 	// End
