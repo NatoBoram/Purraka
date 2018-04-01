@@ -228,7 +228,7 @@ func Spider(db *sql.DB) error {
 		}
 
 		// Log
-		println("There is", strconv.Itoa(len(items)), "items on this page.")
+		//println("There is", strconv.Itoa(len(items)), "items on this page.")
 		if len(items) == 0 {
 			ok = false
 		}
