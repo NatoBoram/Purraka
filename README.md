@@ -1,5 +1,7 @@
 # Purraka
 
+[![Build Status](https://travis-ci.org/NatoBoram/Purraka.svg?branch=master)](https://travis-ci.org/NatoBoram/Purraka)
+
 Purraka is a market analytics tool. To operate, she needs a MariaDB database. Her goal is to crawl the market and save its content to a database for research purpose.
 
 ![Purraka](Images/Full.png)
