@@ -86,7 +86,7 @@ func Spider(db *sql.DB) error {
 	println("Disabling every sales...")
 
 	// Disable everything
-	_, err = tx.Exec("update `market` set `active` = 0;")
+	_, err = tx.Exec("update `market` set `active` = 0 where `active` =! 0;")
 	if err != nil {
 		println("Couldn't disable every sales.")
 		println(err.Error())
