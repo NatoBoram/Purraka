@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/NatoBoram/Purraka.svg?branch=master)](https://travis-ci.org/NatoBoram/Purraka)
 [![Go Report Card](https://goreportcard.com/badge/github.com/NatoBoram/Purraka)](https://goreportcard.com/report/github.com/NatoBoram/Purraka)
+[![GoDoc](https://godoc.org/github.com/NatoBoram/Purraka?status.svg)](https://godoc.org/github.com/NatoBoram/Purraka)
 
 Purraka is a market analytics tool. To operate, she needs a MariaDB database. Her goal is to crawl the market and save its content to a database for research purpose.
 
