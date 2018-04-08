@@ -8,7 +8,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var db *sql.DB
+var db *sql.DB // http://go-database-sql.org/
 
 func main() {
 
