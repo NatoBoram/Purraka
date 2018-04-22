@@ -109,7 +109,7 @@ where `market`.`data-itemid` = `market-diff`.`data-itemid`
 
 -- To the market!
 
-create or replace algorithm=temptable view `market-everything` as
+create or replace algorithm=merge view `market-everything` as
 select
 	-- ID
 	`items`.`data-wearableitemid`, `market`.`data-itemid`,
