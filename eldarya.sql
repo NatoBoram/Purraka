@@ -11,8 +11,6 @@
 	-- buyNowPrice : 1
 	-- data-bids : 0
 
-
-
 --
 -- Database: `eldarya`
 --
@@ -78,10 +76,11 @@ create or replace view `market-average` as
 create or replace view `market-diff` as  
 select
 	`data-itemid`,
-	(`currentPrice` - (select `average-currentPrice` from `market-average` where `market`.`data-wearableitemid` = `market-average`.`data-wearableitemid`)) as `diff-currentPrice`,
-	(`buyNowPrice` - (select `average-buyNowPrice` from `market-average` where `market`.`data-wearableitemid` = `market-average`.`data-wearableitemid`)) as `diff-buyNowPrice`,
-	(`data-bids` - (select `average-data-bids` from `market-average` where `market`.`data-wearableitemid` = `market-average`.`data-wearableitemid`)) as `diff-data-bids`
-from `market`;
+	`currentPrice` - `average-currentPrice` as `diff-currentPrice`,
+	`buyNowPrice` - `average-buyNowPrice` as `diff-buyNowPrice`,
+	`data-bids` - `average-data-bids` as `diff-data-bids`
+from `market`, `market-average`
+where `market`.`data-wearableitemid` = `market-average`.`data-wearableitemid`;
 
 -- Average of differences
 
