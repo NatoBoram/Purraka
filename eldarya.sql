@@ -62,13 +62,13 @@ CREATE TABLE IF NOT EXISTS `market` (
 --
 
 create or replace view `market-average` as  
-	select
-		`data-wearableitemid`,
-		avg(`currentPrice`) as `average-currentPrice`,
-		avg(`buyNowPrice`) as `average-buyNowPrice`,
-		avg(`data-bids`) as `average-data-bids`
-	from `market`
-	group by `data-wearableitemid`
+select
+	`data-wearableitemid`,
+	avg(`currentPrice`) as `average-currentPrice`,
+	avg(`buyNowPrice`) as `average-buyNowPrice`,
+	avg(`data-bids`) as `average-data-bids`
+from `market`
+group by `data-wearableitemid`
 ;
 
 -- Difference between current values and averages
