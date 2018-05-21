@@ -28,9 +28,12 @@ type HeaderStruct struct {
 	XRequestedWith string
 }
 
-var (
+const (
 	dbConfigPath     = "./Purraka/db.json"
 	headerConfigPath = "./Purraka/header.json"
+)
+
+var (
 
 	// DBConfig of Purraka.
 	DBConfig DBStruct
