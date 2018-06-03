@@ -1,4 +1,4 @@
-package spider
+package main
 
 import (
 	"database/sql"
@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NatoBoram/Purraka/config"
 	"golang.org/x/net/html"
 )
 
@@ -109,7 +108,7 @@ func Spider(db *sql.DB) error {
 		}
 
 		// Header
-		req.Header.Add("Cookie", config.HeaderConfig.Cookie)
+		req.Header.Add("Cookie", HeaderConfig.Cookie)
 
 		// Response
 		resp, err := client.Do(req)
@@ -293,23 +292,6 @@ func Spider(db *sql.DB) error {
 	println("End :", end.String())
 
 	return nil
-}
-
-type item struct {
-	id           string
-	datatype     string
-	icon         string
-	rarity       string
-	name         string
-	abstracttype string
-}
-
-type sale struct {
-	id           string
-	itemid       string
-	currentPrice string
-	buyNowPrice  string
-	bids         string
 }
 
 func tag(token html.Token, key string) string {

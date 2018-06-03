@@ -1,45 +1,9 @@
-package config
+package main
 
 import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
-)
-
-// DBStruct hosts Purraka's configuration.
-type DBStruct struct {
-	User     string
-	Password string
-	Address  string
-	Port     string
-	Database string
-}
-
-// HeaderStruct is the header of the request sent to the URL.
-type HeaderStruct struct {
-	Accept         string
-	AcceptEncoding string
-	AcceptLanguage string
-	Connection     string
-	Cookie         string
-	Host           string
-	Referer        string
-	UserAgent      string
-	XRequestedWith string
-}
-
-const (
-	dbConfigPath     = "./Purraka/db.json"
-	headerConfigPath = "./Purraka/header.json"
-)
-
-var (
-
-	// DBConfig of Purraka.
-	DBConfig DBStruct
-
-	// HeaderConfig of Purraka.
-	HeaderConfig HeaderStruct
 )
 
 // Load the config file.
