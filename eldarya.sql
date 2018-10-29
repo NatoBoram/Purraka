@@ -15,9 +15,9 @@
 -- Database: `eldarya`
 --
 
-DROP DATABASE `eldarya`;
-CREATE DATABASE IF NOT EXISTS `eldarya` DEFAULT CHARACTER SET utf8;
-USE `eldarya`;
+DROP DATABASE `purraka`;
+CREATE DATABASE IF NOT EXISTS `purraka` DEFAULT CHARACTER SET utf8mb4;
+USE `purraka`;
 
 -- --------------------------------------------------------
 
@@ -28,12 +28,12 @@ USE `eldarya`;
 DROP TABLE IF EXISTS `items`;
 CREATE TABLE IF NOT EXISTS `items` (
 	`data-wearableitemid` int PRIMARY KEY,
-	`data-type` varchar(32) DEFAULT NULL,
-	`abstract-icon` varchar(128) DEFAULT NULL,
-	`rarity-marker` varchar(16) DEFAULT NULL,
-	`abstract-name` varchar(64) DEFAULT NULL,
-	`abstract-type` varchar(32) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	`data-type` varchar(32) not null,
+	`abstract-icon` varchar(128) not null,
+	`rarity-marker` varchar(16) not null,
+	`abstract-name` varchar(64) not null,
+	`abstract-type` varchar(32) not null
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
@@ -44,91 +44,125 @@ CREATE TABLE IF NOT EXISTS `items` (
 DROP TABLE IF EXISTS `market`;
 CREATE TABLE IF NOT EXISTS `market` (
 	`data-itemid` int PRIMARY KEY,
-	`data-wearableitemid` int NOT NULL,
-	`currentPrice` int DEFAULT NULL,
-	`buyNowPrice` int DEFAULT NULL,
-	`data-bids` int DEFAULT NULL,
-	`active` boolean NOT NULL DEFAULT 1,
+	`data-wearableitemid` int not null,
+	`currentPrice` int not null,
+	`buyNowPrice` int not null,
+	`data-bids` int not null,
+	`active` boolean not null DEFAULT 1,
 	CONSTRAINT `fk_market_items`
 		FOREIGN KEY (`data-wearableitemid`) REFERENCES items (`data-wearableitemid`)
 		ON DELETE CASCADE
 		ON UPDATE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
 --
--- View structure for view `market-view`
+-- View structure for view `market-avgstd`
 --
 
-create or replace view `market-average` as  
-select
-	`data-wearableitemid`,
-	avg(`currentPrice`) as `average-currentPrice`,
-	avg(`buyNowPrice`) as `average-buyNowPrice`,
-	avg(`data-bids`) as `average-data-bids`
-from `market`
-group by `data-wearableitemid`
+create or replace view `market-avgstd` as  
+	select
+		`market`.`data-wearableitemid` AS `data-wearableitemid`,
+		avg(`market`.`currentPrice`) AS `avg-currentPrice`,
+		std(`market`.`currentPrice`) AS `std-currentPrice`,
+		avg(`market`.`buyNowPrice`) AS `avg-buyNowPrice`,
+		std(`market`.`buyNowPrice`) AS `std-buyNowPrice`,
+		avg(`market`.`data-bids`) AS `avg-data-bids`,
+		std(`market`.`data-bids`) AS `std-data-bids`
+	from `market`
+	where
+		((`market`.`currentPrice` > 0)
+		and (`market`.`buyNowPrice` > 0))
+	group by `market`.`data-wearableitemid`
 ;
 
--- Difference between current values and averages
+-- --------------------------------------------------------
 
-create or replace view `market-diff` as  
-select
-	`data-itemid`,
-	`currentPrice` - `average-currentPrice` as `diff-currentPrice`,
-	`buyNowPrice` - `average-buyNowPrice` as `diff-buyNowPrice`,
-	`data-bids` - `average-data-bids` as `diff-data-bids`
-from `market`, `market-average`
-where `market`.`data-wearableitemid` = `market-average`.`data-wearableitemid`;
-
--- Average of differences
-
-create or replace view `market-sigma` as 
-select
-	`data-wearableitemid`,
-	avg(abs(`diff-currentPrice`)) as `sigma-currentPrice`,
-	avg(abs(`diff-buyNowPrice`)) as `sigma-buyNowPrice`,
-	avg(abs(`diff-data-bids`)) as `sigma-data-bids`
-from `market`, `market-diff`
-where `market`.`data-itemid` = `market-diff`.`data-itemid`
-group by `data-wearableitemid`;
-
--- Z Score
+--
+-- View structure for view `market-zscore`
+--
 
 create or replace view `market-zscore` as
 select
-	`market`.`data-itemid`,
-	COALESCE(`diff-currentPrice` / `sigma-currentPrice`, 0) as `zscore-currentPrice`,
-	COALESCE(`diff-buyNowPrice` / `sigma-buyNowPrice`, 0) as `zscore-buyNowPrice`,
-	COALESCE(`diff-data-bids` / `sigma-data-bids`, 0) as `zscore-data-bids`
-from `market-diff`, `market-sigma`, `market`
-where `market`.`data-itemid` = `market-diff`.`data-itemid`
-	and `market`.`data-wearableitemid` = `market-sigma`.`data-wearableitemid`
-;
+	`market`.`data-itemid` AS `data-itemid`,
+	coalesce(((`market`.`buyNowPrice` - `market-avgstd`.`avg-buyNowPrice`) / `market-avgstd`.`std-buyNowPrice`),0) AS `zscore-buyNowPrice`,
+	coalesce(((`market`.`currentPrice` - `market-avgstd`.`avg-currentPrice`) / `market-avgstd`.`std-currentPrice`),0) AS `zscore-currentPrice`,
+	coalesce(((`market`.`data-bids` - `market-avgstd`.`avg-data-bids`) / `market-avgstd`.`std-data-bids`),0) AS `zscore-data-bids`
+from `market`
+	join `market-avgstd`
+where (
+	(`market`.`data-wearableitemid` = `market-avgstd`.`data-wearableitemid`)
+	and (`market`.`currentPrice` > 0)
+	and (`market`.`buyNowPrice` > 0)
+	and (`market`.`active` = 1)
+);
 
--- To the market!
+-- --------------------------------------------------------
 
-create or replace algorithm=merge view `market-everything` as
+--
+-- View structure for view `market-everything`
+--
+
+create or replace view `market-everything` as
 select
-	-- ID
-	`items`.`data-wearableitemid`, `market`.`data-itemid`,
-	-- Abstract
-	`data-type`,
-	`rarity-marker`,
-	`abstract-name`,
-	`abstract-type`,
-	-- Prices
-	`currentPrice`, `zscore-currentPrice`,
-	`buyNowPrice`, `zscore-buyNowPrice`,
-	`data-bids`, `zscore-data-bids`,
-	-- Nonsense
-	`abstract-icon`
-from `items`, `market`, `market-zscore`
-where `items`.`data-wearableitemid` = `market`.`data-wearableitemid`
-	and `market`.`data-itemid` = `market-zscore`.`data-itemid`
-	and `active` = 1
-	and `currentPrice` > 0
-	and `buyNowPrice` > 0
-order by `zscore-buyNowPrice`, `zscore-currentPrice`
-;
+	`items`.`data-wearableitemid` AS `data-wearableitemid`,
+	`market`.`data-itemid` AS `data-itemid`,
+	`items`.`data-type` AS `data-type`,
+	`items`.`rarity-marker` AS `rarity-marker`,
+	`items`.`abstract-name` AS `abstract-name`,
+	`items`.`abstract-type` AS `abstract-type`,
+	`market`.`currentPrice` AS `currentPrice`,
+	`market-zscore`.`zscore-currentPrice` AS `zscore-currentPrice`,
+	`market`.`buyNowPrice` AS `buyNowPrice`,
+	`market-zscore`.`zscore-buyNowPrice` AS `zscore-buyNowPrice`,
+	`market`.`data-bids` AS `data-bids`,
+	`market-zscore`.`zscore-data-bids` AS `zscore-data-bids`,
+	`items`.`abstract-icon` AS `abstract-icon`
+from `items`
+join `market`
+join `market-zscore`
+where (
+	(`items`.`data-wearableitemid` = `market`.`data-wearableitemid`)
+	and (`market`.`data-itemid` = `market-zscore`.`data-itemid`)
+	and (`market`.`active` = 1)
+	and (`market`.`currentPrice` > 0)
+	and (`market`.`buyNowPrice` > 0)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `z-market`
+--
+
+CREATE TABLE `z-market` (
+  `data-wearableitemid` int(11) not null,
+  `data-itemid` int(11) not null,
+  `data-type` varchar(32) not null,
+  `rarity-marker` varchar(16) not null,
+  `abstract-name` varchar(64) not null,
+  `abstract-type` varchar(32) not null,
+  `currentPrice` int(11) not null,
+  `zscore-currentPrice` double not null,
+  `buyNowPrice` int(11) not null,
+  `zscore-buyNowPrice` double not null,
+  `data-bids` int(11) not null,
+  `zscore-data-bids` double not null,
+  `abstract-icon` varchar(128) not null
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
+-- Event structure for event `event_update_zmarket`
+--
+
+delimiter |
+CREATE EVENT `event_update_zmarket` ON SCHEDULE EVERY 1 MINUTE ENABLE DO begin
+	start transaction;
+		delete from `z-market`;
+		insert into `z-market` select * from `market-everything`;
+		commit;
+	end |
+delimiter ;
