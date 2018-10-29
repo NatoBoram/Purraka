@@ -1,13 +1,17 @@
 package main
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"github.com/bwmarrin/discordgo"
+)
 
 var (
-	db *sql.DB // http://go-database-sql.org/
+	db *sql.DB
 
-	// DBConfig of Purraka.
-	DBConfig DBStruct
+	session *discordgo.Session
+	me      *discordgo.User
+	master  *discordgo.User
 
-	// HeaderConfig of Purraka.
-	HeaderConfig HeaderStruct
+	header Header
 )

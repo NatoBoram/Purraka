@@ -1,7 +1,7 @@
 package main
 
 import (
-	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,22 +13,23 @@ import (
 var url = "http://www.eldarya.fr/marketplace/ajax_search?from=0&to=10000"
 
 // StartSpider starts the spider. Call this function in a goroutine.
-func StartSpider(db *sql.DB) {
+func StartSpider() {
 	for {
 		nextTime := time.Now().Truncate(time.Minute)
 		nextTime = nextTime.Add(time.Minute)
 		time.Sleep(time.Until(nextTime))
 
 		// Launch the spider
-		err := Spider(db)
+		err := Spider()
 		if err != nil {
+			fmt.Println("There was an error while running the spider.")
 			println(err.Error())
 		}
 	}
 }
 
 // Spider scans Eldarya's market.
-func Spider(db *sql.DB) error {
+func Spider() error {
 
 	// Start
 	start := time.Now()
@@ -108,7 +109,7 @@ func Spider(db *sql.DB) error {
 		}
 
 		// Header
-		req.Header.Add("Cookie", HeaderConfig.Cookie)
+		req.Header.Add("Cookie", header.Cookie)
 
 		// Response
 		resp, err := client.Do(req)

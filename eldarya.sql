@@ -166,3 +166,26 @@ CREATE EVENT `event_update_zmarket` ON SCHEDULE EVERY 1 MINUTE ENABLE DO begin
 		commit;
 	end |
 delimiter ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sent_on_discord`
+--
+
+DROP TABLE IF EXISTS `sent_on_discord`;
+CREATE TABLE IF NOT EXISTS `sent_on_discord` (
+	`data-itemid` int PRIMARY KEY
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sent_on_discord`
+--
+
+DROP TABLE IF EXISTS `callback_channel`;
+CREATE TABLE IF NOT EXISTS `callback_channel` (
+	`guild` varchar(32) PRIMARY KEY,
+	`channel` varchar(32)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
