@@ -11,7 +11,9 @@ func selectBestZScore() (selected selectedZScoreItem, err error) {
 		"`data-wearableitemid`, `data-itemid`, `data-type`, `rarity-marker`, `abstract-name`, `abstract-type`, `currentPrice`, `zscore-currentPrice`, `buyNowPrice`, `zscore-buyNowPrice`, `data-bids`, `zscore-data-bids`, `abstract-icon` "+
 		"FROM `z-market` "+
 		"WHERE `data-type` != 'EggItem' "+
-		"ORDER BY if(`data-bids` = 0, least(`zscore-buyNowPrice`, `zscore-currentPrice`), `zscore-currentPrice`) asc, if(`data-bids` = 0, greatest(`currentPrice`, `buyNowPrice`), `currentPrice`) desc "+
+		"AND `data-bids` = 0 "+ // Block bids
+		// "ORDER BY if(`data-bids` = 0, least(`zscore-buyNowPrice`, `zscore-currentPrice`), `zscore-currentPrice`) asc, if(`data-bids` = 0, greatest(`currentPrice`, `buyNowPrice`), `currentPrice`) desc "+
+		"ORDER BY `zscore-currentPrice` asc, `currentPrice` desc "+
 		"LIMIT 1;").Scan(&selected.datawearableitemid, &selected.dataitemid, &selected.datatype, &selected.raritymarker, &selected.abstractname, &selected.abstracttype, &selected.currentPrice, &selected.zscorecurrentPrice, &selected.buyNowPrice, &selected.zscorebuyNowPrice, &selected.databids, &selected.zscoredatabids, &selected.abstracticon)
 	return selected, err
 }
