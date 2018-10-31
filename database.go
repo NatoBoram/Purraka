@@ -13,7 +13,7 @@ func selectBestZScore() (selected selectedZScoreItem, err error) {
 		"WHERE `data-type` != 'EggItem' "+
 		"AND `data-bids` = 0 "+ // Block bids
 		// "ORDER BY if(`data-bids` = 0, least(`zscore-buyNowPrice`, `zscore-currentPrice`), `zscore-currentPrice`) asc, if(`data-bids` = 0, greatest(`currentPrice`, `buyNowPrice`), `currentPrice`) desc "+
-		"ORDER BY `zscore-currentPrice` asc, `currentPrice` desc "+
+		"ORDER BY `zscore-buyNowPrice` asc, `buyNowPrice` desc "+
 		"LIMIT 1;").Scan(&selected.datawearableitemid, &selected.dataitemid, &selected.datatype, &selected.raritymarker, &selected.abstractname, &selected.abstracttype, &selected.currentPrice, &selected.zscorecurrentPrice, &selected.buyNowPrice, &selected.zscorebuyNowPrice, &selected.databids, &selected.zscoredatabids, &selected.abstracticon)
 	return selected, err
 }
